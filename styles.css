@@ -1530,6 +1530,17 @@ section[id] { scroll-margin-top: 72px; }
 }
 .menu-link:hover { color: var(--burgundy-lt); }
 
+.game__rotate-hint {
+  display: none;
+  font-size: 0.8rem;
+  color: var(--mid);
+  margin-top: 14px;
+  font-style: italic;
+}
+@media (max-width: 768px) {
+  .game__rotate-hint { display: block; }
+}
+
 .menu-modal {
   display: none;
   position: fixed;
