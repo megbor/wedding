@@ -1437,6 +1437,11 @@ section[id] { scroll-margin-top: 72px; }
   .attire__trio {
     grid-template-columns: 1fr auto 1fr;
     gap: 10px;
+    justify-content: stretch;
+  }
+  .attire__trio-panel {
+    width: 100%;
+    min-width: 0;
   }
   .attire__color-swatch {
     width: 28px;
