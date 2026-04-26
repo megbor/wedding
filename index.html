@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magda &amp; Ivan — Our Wedding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="nav__inner">
+      <a href="#hero" class="nav__logo">M &amp; I</a>
+      <ul class="nav__links">
+        <li><a href="#hero">Home</a></li>
+        <li><a href="#about">Su di noi</a></li>
+        <li><a href="#program">Programma</a></li>
+        <li><a href="#attire">Dress code</a></li>
+        <li><a href="#wishlist">Lista Regali</a></li>
+        <li><a href="#rsvp">Ci sarai?</a></li>
+        <li><a href="#game-teaser">Il minigioco</a></li>
+      </ul>
+      <button class="nav__hamburger" id="hamburger" aria-label="Apri menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav__mobile" id="mobileMenu">
+      <a href="#hero" class="nav__mobile-link">Home</a>
+      <a href="#about" class="nav__mobile-link">Su di noi</a>
+      <a href="#program" class="nav__mobile-link">Programma</a>
+      <a href="#attire" class="nav__mobile-link">Abiti</a>
+      <a href="#rsvp" class="nav__mobile-link">Ci sarai?</a>
+      <a href="#wishlist" class="nav__mobile-link">Lista Regali</a>
+      <a href="game.html" class="nav__mobile-link">🕹 Gioca!</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="hero__img-placeholder"></div>
+    <div class="hero__overlay"></div>
+    <div class="hero__content">
+      <p class="hero__eyebrow">Ci sposiamo</p>
+      <h1 class="hero__names">Magda <span class="hero__amp">&amp;</span> Ivan</h1>
+      <div class="hero__divider"></div>
+      <p class="hero__date">Venerdì, 25 Settembre 2026</p>
+      <p class="hero__place">La Locanda del Cavaliere &middot; San Bartolomeo al Mare, Imperia, Italy</p>
+      <a href="#rsvp" class="btn btn--outline-light hero__cta">Ci sarai?</a>
+    </div>
+    <a href="#program" class="hero__scroll" aria-label="Scorri verso il basso">&#8595;</a>
+  </section>
+
+  <!-- Countdown -->
+  <section class="countdown">
+    <div class="container">
+      <div class="countdown__grid">
+        <div class="countdown__unit">
+          <span class="countdown__num" id="cd-days">—</span>
+          <span class="countdown__label">Giorni</span>
+        </div>
+        <div class="countdown__sep">·</div>
+        <div class="countdown__unit">
+          <span class="countdown__num" id="cd-hours">—</span>
+          <span class="countdown__label">Ore</span>
+        </div>
+        <div class="countdown__sep">·</div>
+        <div class="countdown__unit">
+          <span class="countdown__num" id="cd-minutes">—</span>
+          <span class="countdown__label">Minuti</span>
+        </div>
+        <div class="countdown__sep">·</div>
+        <div class="countdown__unit">
+          <span class="countdown__num" id="cd-seconds">—</span>
+          <span class="countdown__label">Secondi</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Su di noi -->
+  <section class="about-section" id="about">
+    <div class="container container--narrow">
+      <div class="about-section__header">
+        <h2 class="section__title">Eccoci!</h2>
+      </div>
+      <div class="about-grid">
+        <div class="about-grid__item" data-index="0">
+          <img src="images/couple/magda-ivan-campo.jpeg" alt="Magda e Ivan" />
+        </div>
+        <div class="about-grid__item" data-index="1">
+          <img src="images/couple/magda-ivan-sguardo.jpeg" alt="Magda e Ivan" />
+        </div>
+        <div class="about-grid__item" data-index="2">
+          <img src="images/couple/magda-ivan-cappello.jpeg" alt="Magda e Ivan" />
+        </div>
+        <div class="about-grid__item" data-index="3">
+          <img src="images/couple/magda-ivan-neve.jpeg" alt="Magda e Ivan" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Program -->
+  <section class="section" id="program">
+    <div class="container container--narrow">
+      <div class="section__header">
+        <p class="section__label">Il Nostro Giorno</p>
+        <h2 class="section__title">Programma</h2>
+        <p class="section__sub">Unitevi a noi per un giorno pieno di amore, gioia e risate.</p>
+        <div class="program__venue">
+          <p class="program__venue-label">Dove ci troviamo</p>
+          <a class="program__venue-name" href="https://locandadelcavaliere.it/" target="_blank" rel="noopener">La Locanda del Cavaliere</a>
+          <a class="program__venue-address" href="https://maps.google.com/?q=Via+XX+Settembre+26+18016+San+Bartolomeo+al+Mare+IM+Italia" target="_blank" rel="noopener">
+            📍 Via XX Settembre, 26 — San Bartolomeo al Mare (IM)
+          </a>
+        </div>
+      </div>
+
+      <img src="images/venue/la-locanda-del-cavaliere.jpg" alt="La Locanda del Cavaliere" class="section-photo" />
+
+       <div class="timeline">
+        <div class="timeline__item">
+          <span class="timeline__time">11:00</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Inizio Ricevimento</h3>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">12:00</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Cerimonia Simbolica</h3>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">12:45</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Aperitivo</h3>
+            <div class="timeline__detail">
+              <p class="timeline__desc">Corner dei Lievitati · Corner Salumi e Formaggi tagliati a coltello · Corner dei Fritti · Corner dei Finger Food</p>
+            </div>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">14:30</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Pranzo</h3>
+            <div class="timeline__detail">
+              <p class="timeline__desc"><button class="menu-link" onclick="document.getElementById('menu-modal').classList.add('is-open')">Scopri il menù →</button></p>
+            </div>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">16:30</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Taglio Torta</h3>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">17:00</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Musica e Balli</h3>
+          </div>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__time">19:30</span>
+          <div class="timeline__body">
+            <h3 class="timeline__event">Fine Ricevimento</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Attire -->
+  <section class="section section--alt" id="attire">
+    <div class="container container--narrow">
+      <div class="section__header">
+        <p class="section__label">Dress Code</p>
+        <h2 class="section__title">Abbigliamento</h2>
+        <p class="section__sub">Vogliamo che vi sentiate a vostro agio e bellissimi. Se avete voglia di entrare nell'atmosfera della giornata, questi sono i colori che ci ispirano. Sentitevi liberi di combinarli come preferite, anche in modo del tutto personale. L'importante è che siate voi.</p>
+      </div>
+
+      <div class="attire__trio">
+
+        <!-- Ivan (sinistra) -->
+        <div class="attire__trio-panel">
+          <div class="attire__trio-imgs">
+            <div class="attire__trio-photo is-active" data-ivan="borgogna"><img src="images/attire/ivan-borgogna.png" alt="Ivan - Borgogna" /></div>
+            <div class="attire__trio-photo" data-ivan="rosa-antico"><img src="images/attire/ivan-rosa-antico.png" alt="Ivan - Rosa Antico" /></div>
+            <div class="attire__trio-photo" data-ivan="beige"><img src="images/attire/ivan-beige.png" alt="Ivan - Beige" /></div>
+            <div class="attire__trio-photo" data-ivan="verde-foresta"><img src="images/attire/ivan-verde-foresta.png" alt="Ivan - Verde Foresta" /></div>
+            <div class="attire__trio-photo" data-ivan="verde-salvia"><img src="images/attire/ivan-verde-salvia.png" alt="Ivan - Verde Salvia" /></div>
+            <div class="attire__trio-photo" data-ivan="blu"><img src="images/attire/ivan-blu.png" alt="Ivan - Blu" /></div>
+            <div class="attire__trio-photo" data-ivan="azzurro"><img src="images/attire/ivan-azzurro.png" alt="Ivan - Azzurro" /></div>
+            <div class="attire__trio-photo" data-ivan="lilla"><img src="images/attire/ivan-lilla.png" alt="Ivan - Lilla" /></div>
+          </div>
+        </div>
+
+        <!-- Colori (centro) -->
+        <div class="attire__trio-colors">
+          <button class="attire__color-btn is-active" data-color="borgogna"><span class="attire__color-swatch" style="background:#793f59;"></span></button>
+          <button class="attire__color-btn" data-color="rosa-antico"><span class="attire__color-swatch" style="background:#ddc6c5;"></span></button>
+          <button class="attire__color-btn" data-color="beige"><span class="attire__color-swatch" style="background:#d8caab;"></span></button>
+          <button class="attire__color-btn" data-color="verde-foresta"><span class="attire__color-swatch" style="background:#28625b;"></span></button>
+          <button class="attire__color-btn" data-color="verde-salvia"><span class="attire__color-swatch" style="background:#b6bfa4;"></span></button>
+          <button class="attire__color-btn" data-color="blu"><span class="attire__color-swatch" style="background:#1b3663;"></span></button>
+          <button class="attire__color-btn" data-color="azzurro"><span class="attire__color-swatch" style="background:#d9e3eb;"></span></button>
+          <button class="attire__color-btn" data-color="lilla"><span class="attire__color-swatch" style="background:#ede6fa;"></span></button>
+          <p class="attire__color-label" id="attire-color-label">Borgogna</p>
+        </div>
+
+        <!-- Magda (destra) -->
+        <div class="attire__trio-panel">
+          <div class="attire__trio-imgs">
+            <div class="attire__trio-photo is-active" data-magda="borgogna"><img src="images/attire/magda-borgogna.png" alt="Magda - Borgogna" /></div>
+            <div class="attire__trio-photo" data-magda="rosa-antico"><img src="images/attire/magda-rosa-antico.png" alt="Magda - Rosa Antico" /></div>
+            <div class="attire__trio-photo" data-magda="beige"><img src="images/attire/magda-beige.png" alt="Magda - Beige" /></div>
+            <div class="attire__trio-photo" data-magda="verde-foresta"><img src="images/attire/magda-verde-foresta.png" alt="Magda - Verde Foresta" /></div>
+            <div class="attire__trio-photo" data-magda="verde-salvia"><img src="images/attire/magda-verde-salvia.png" alt="Magda - Verde Salvia" /></div>
+            <div class="attire__trio-photo" data-magda="blu"><img src="images/attire/magda-blu.png" alt="Magda - Blu" /></div>
+            <div class="attire__trio-photo" data-magda="azzurro"><img src="images/attire/magda-azzurro.png" alt="Magda - Azzurro" /></div>
+            <div class="attire__trio-photo" data-magda="lilla"><img src="images/attire/magda-lilla.png" alt="Magda - Lilla" /></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="attire__note">
+        <p class="attire__note-heading">Da tenere a mente</p>
+        <ul class="attire__note-list">
+          <li>La cerimonia e l'aperitivo si svolgono all'aperto sul prato, per questo <strong>sconsigliamo tacchi a spillo</strong>.</li>
+          <li>Vi chiediamo gentilmente di <strong>evitare il bianco e l'avorio</strong>: vorremmo che quei colori restassero alla sposa.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gift / Wishlist (Honeymoon) -->
+  <section class="section" id="wishlist">
+    <div class="container container--narrow">
+      <div class="section__header">
+        <p class="section__label">Lista Regali</p>
+        <h2 class="section__title">La Nostra Luna di Miele</h2>
+        <p class="section__sub">La vostra presenza è il regalo più grande. Ma se desiderate contribuire alle nostre avventure, ecco uno sguardo al nostro sogno di luna di miele.</p>
+      </div>
+
+      <div class="polaroid-wall">
+        <div class="polaroid polaroid--left">
+          <img src="images/couple/magda-ivan-ritratto.jpeg" alt="Magda e Ivan" />
+        </div>
+        <div class="polaroid polaroid--center">
+          <img src="images/couple/magda-ivan-insieme.jpeg" alt="Magda e Ivan insieme" />
+        </div>
+        <div class="polaroid polaroid--right">
+          <img src="images/couple/ivan-ritratto.jpeg" alt="Ivan" />
+        </div>
+      </div>
+
+      <p class="wishlist__intro">Trascorreremo tre settimane alla <strong>scoperta del Giappone</strong>, dai vicoli illuminati dalle lanterne di Kyoto alla costa selvaggia di Okinawa. Ecco alcuni esempi di esperienze che vorremmo fare.</p>
+
+      <div class="wishlist__grid">
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/kyoto-campi-te.jpg" alt="Campi di tè Kyoto" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>"Vuoi che partiamo subito per la nostra avventura” domandó Peter, "o preferisci prendere il te?"" "Prima il te", rispose Wendy.</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Tokyo, Japan</p>
+            <h3 class="wish-card__title">Raccolta del Tè e Cerimonia del Tè Privata</h3>
+          </div>
+        </div>
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/tokyo-sumo.jpg" alt="Incontro di Sumo Tokyo" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>Non si entra nel dohyo senza rispetto.</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Tokyo, Japan</p>
+            <h3 class="wish-card__title">Assistere ad un incontro di Sumo</h3>
+          </div>
+        </div>
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/hakone-ryokan.jpg" alt="Ryokan Hakone" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>Amare è mangiare e dormire insieme.</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Hakone, Japan</p>
+            <h3 class="wish-card__title">Passare una notte in un ryokan</h3>
+          </div>
+        </div>
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/himeji-castello.jpg" alt="Castello di Himeji" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>Dove trovar la pace che tutti rende bello, se non dentro un fatato magnifico castello?</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Hyogo, Japan</p>
+            <h3 class="wish-card__title">Visitare il Castello di Himeji</h3>
+          </div>
+        </div>
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/giappone-onsen.png" alt="Onsen Giappone" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>Non c’è nulla che provochi più trambusto delle persone che cercano il relax.</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Japan</p>
+            <h3 class="wish-card__title">Rilassarsi in una tradizionale sorgente termale</h3>
+          </div>
+        </div>
+
+        <div class="wish-card">
+          <div class="wish-card__img-wrap">
+            <img src="images/japan/shimanami-kaido.jpg" alt="Shimanami Kaido in bicicletta" class="wish-card__img" />
+            <div class="wish-card__overlay"><p>Vai, con questa canzonetta metti il cuore in bicicletta e il mondo aspetta il tuo sorriso, vai.</p></div>
+          </div>
+          <div class="wish-card__body">
+            <p class="wish-card__tag">Onomichi, Japan</p>
+            <h3 class="wish-card__title">In bicicletta sullo Shimanami Kaido</h3>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="wishlist__cta">
+        <button class="btn btn--primary" id="contributeBtn">Come contribuire</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RSVP -->
+  <section class="section section--alt" id="rsvp">
+    <div class="container container--narrow">
+      <div class="section__header">
+        <p class="section__label">Si prega di rispondere entro il 1° luglio 2026</p>
+        <h2 class="section__title">Ci sarai?</h2>
+        <p class="section__sub">Fateci sapere se sarete con noi nel nostro giorno speciale.</p>
+      </div>
+
+      <form class="rsvp-form" id="rsvpForm" novalidate>
+
+        <!-- ① Nome + Partecipazione (sempre visibili) -->
+        <div class="form__row">
+          <div class="form__group">
+            <label class="form__label" for="firstName">Nome <span class="req">*</span></label>
+            <input class="form__input" type="text" id="firstName" name="firstName" placeholder="Magda" required />
+          </div>
+          <div class="form__group">
+            <label class="form__label" for="lastName">Cognome <span class="req">*</span></label>
+            <input class="form__input" type="text" id="lastName" name="lastName" placeholder="Rossi" required />
+          </div>
+        </div>
+
+        <div class="form__group">
+          <label class="form__label">Parteciperete? <span class="req">*</span></label>
+          <div class="form__radio-group">
+            <label class="form__radio"><input type="radio" name="attendance" value="yes" required checked /><span class="form__radio-custom"></span>Sì</label>
+            <label class="form__radio"><input type="radio" name="attendance" value="no" /><span class="form__radio-custom"></span>No</label>
+          </div>
+        </div>
+
+        <!-- ② Tutto il resto — visibile solo se Sì -->
+        <div id="rsvpYesSection">
+
+        <div class="form__person-card" id="cardMain">
+          <p class="form__person-tag">Tu</p>
+          <div class="form__group">
+            <label class="form__label">Esigenze alimentari <span class="req">*</span></label>
+            <div class="form__dietary" data-person="main">
+              <label class="form__check"><input type="checkbox" name="d-main" value="nessuna"><span>Nessuna esigenza</span></label>
+              <label class="form__check"><input type="checkbox" name="d-main" value="vegetariano"><span>Vegetariano/a</span></label>
+              <label class="form__check"><input type="checkbox" name="d-main" value="vegano"><span>Vegano/a</span></label>
+              <label class="form__check"><input type="checkbox" name="d-main" value="glutine"><span>Senza glutine</span></label>
+              <label class="form__check"><input type="checkbox" name="d-main" value="lattosio"><span>Intollerante al lattosio</span></label>
+              <label class="form__check"><input type="checkbox" name="d-main" value="noci"><span>Allergia alle noci</span></label>
+              <label class="form__check form__check--altro"><input type="checkbox" name="d-main" value="altro"><span>Altro:</span><input type="text" class="form__input form__input--inline" name="d-main-altro" placeholder="specifica…" disabled></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ Accompagnatore -->
+        <div class="form__group" id="plusOneSection">
+          <label class="form__label">Portate un accompagnatore? <span class="form__label--note">(solo se non si registra separatamente)</span></label>
+          <div class="form__radio-group">
+            <label class="form__radio"><input type="radio" name="plusOne" value="yes" /><span class="form__radio-custom"></span>Sì</label>
+            <label class="form__radio"><input type="radio" name="plusOne" value="no" checked /><span class="form__radio-custom"></span>No</label>
+          </div>
+        </div>
+
+        <div id="plusOneDetails" style="display:none">
+          <div class="form__person-card">
+            <p class="form__person-tag">Accompagnatore</p>
+            <div class="form__row">
+              <div class="form__group">
+                <label class="form__label" for="plusFirstName">Nome</label>
+                <input class="form__input" type="text" id="plusFirstName" name="plusFirstName" placeholder="Nome" />
+              </div>
+              <div class="form__group">
+                <label class="form__label" for="plusLastName">Cognome</label>
+                <input class="form__input" type="text" id="plusLastName" name="plusLastName" placeholder="Cognome" />
+              </div>
+            </div>
+            <div class="form__group">
+              <label class="form__label">Esigenze alimentari <span class="req">*</span></label>
+              <div class="form__dietary" data-person="plus">
+                <label class="form__check"><input type="checkbox" name="d-plus" value="nessuna"><span>Nessuna esigenza</span></label>
+                <label class="form__check"><input type="checkbox" name="d-plus" value="vegetariano"><span>Vegetariano/a</span></label>
+                <label class="form__check"><input type="checkbox" name="d-plus" value="vegano"><span>Vegano/a</span></label>
+                <label class="form__check"><input type="checkbox" name="d-plus" value="glutine"><span>Senza glutine</span></label>
+                <label class="form__check"><input type="checkbox" name="d-plus" value="lattosio"><span>Intollerante al lattosio</span></label>
+                <label class="form__check"><input type="checkbox" name="d-plus" value="noci"><span>Allergia alle noci</span></label>
+                <label class="form__check form__check--altro"><input type="checkbox" name="d-plus" value="altro"><span>Altro:</span><input type="text" class="form__input form__input--inline" name="d-plus-altro" placeholder="specifica…" disabled></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ Bambini -->
+        <div class="form__group">
+          <label class="form__label">Ci sono bambini?</label>
+          <div class="form__radio-group">
+            <label class="form__radio"><input type="radio" name="hasChildren" value="yes" /><span class="form__radio-custom"></span>Sì</label>
+            <label class="form__radio"><input type="radio" name="hasChildren" value="no" checked /><span class="form__radio-custom"></span>No</label>
+          </div>
+        </div>
+
+        <div id="childrenSection" style="display:none">
+          <div class="form__group">
+            <label class="form__label" for="childrenCount">Quanti bambini?</label>
+            <select class="form__input form__select" id="childrenCount" name="childrenCount">
+              <option value="">—</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div id="childrenCards"></div>
+        </div>
+
+        <!-- ⑤ Messaggio -->
+        <!-- ⑤ Messaggio -->
+        <div class="form__group">
+          <label class="form__label" for="message">Un messaggio per gli sposi <span class="req">*</span></label>
+          <textarea class="form__input form__textarea" id="message" name="message" rows="3" placeholder="Lasciateci un messaggio…"></textarea>
+        </div>
+
+        </div><!-- /rsvpYesSection -->
+
+        <div class="form__footer">
+          <button class="btn btn--primary" type="submit">Invia la tua risposta</button>
+        </div>
+
+        <div class="form__error" id="formError" style="display:none;">
+          <p id="formErrorMsg">Compilate tutti i campi obbligatori prima di inviare.</p>
+        </div>
+
+      </form>
+
+      <div class="form__success" id="formSuccess" style="display:none;">
+        <p id="formSuccessMsg"></p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Contribute Modal -->
+  <div class="modal" id="contributeModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__backdrop" id="modalBackdrop"></div>
+    <div class="modal__box">
+      <button class="modal__close" id="modalClose" aria-label="Chiudi">&#10005;</button>
+      <p class="modal__eyebrow">Luna di Miele</p>
+      <h2 class="modal__title" id="modalTitle">Come Contribuire</h2>
+      <p class="modal__intro">Se desiderate regalarci un pezzo del nostro viaggio in Giappone, potete farlo tramite bonifico bancario ai seguenti riferimenti.</p>
+
+      <div class="modal__details">
+        <div class="modal__row">
+          <span class="modal__label">Intestatario</span>
+          <span class="modal__value">Magda Boretti</span>
+        </div>
+        <div class="modal__row">
+          <span class="modal__label">IBAN</span>
+          <span class="modal__value">IT87 F076 0110 5000 0106 2211 196</span>
+        </div>
+        <div class="modal__row">
+          <span class="modal__label">Causale</span>
+          <span class="modal__value">Regalo Nozze Magda Boretti e Ivan Ferrari</span>
+        </div>
+      </div>
+
+      <p class="modal__note">Per qualsiasi domanda contattateci:<br>Ivan <a href="tel:+393299569740">+39 329 956 9740</a><br>Magda <a href="tel:+393663238683">+39 366 323 8683</a></p>
+    </div>
+  </div>
+
+  <!-- Gioco -->
+  <section class="section" id="game-teaser">
+    <div class="container container--narrow" style="text-align:center;">
+      <p class="section__label">Il minigioco</p>
+      <h2 class="section__title">Aiuta Magda e Ivan ad arrivare puntuali!</h2>
+      <p class="section__sub" style="margin-bottom:32px;">Due percorsi, una promessa. Non farti tentare da focacce e pesto ed evita il traffico per guidarli fino a Diano Marina, in tempo per il sì.</p>
+      <a href="game.html" class="btn btn--primary">🕹 Gioca!</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <a href="#hero" class="footer__top">
+        <span class="footer__names">Magda &amp; Ivan</span>
+        <span class="footer__sep">·</span>
+        <span class="footer__date">25 · 09 · 2026</span>
+        <span class="footer__sep">·</span>
+        <span class="footer__tagline">Fatto con amore</span>
+      </a>
+    </div>
+  </footer>
+
+  <!-- Modal Menù -->
+  <div id="menu-modal" class="menu-modal" role="dialog" aria-modal="true" aria-labelledby="menu-modal-title">
+    <div class="menu-modal__backdrop" onclick="document.getElementById('menu-modal').classList.remove('is-open')"></div>
+    <div class="menu-modal__box">
+      <button class="menu-modal__close" onclick="document.getElementById('menu-modal').classList.remove('is-open')" aria-label="Chiudi">✕</button>
+      <p class="menu-modal__label">Il Menù</p>
+      <h2 class="menu-modal__title" id="menu-modal-title">Pranzo di Nozze</h2>
+      <div class="menu-modal__courses">
+        <div class="menu-modal__course">
+          <span class="menu-modal__course-label">Antipasto</span>
+          <p class="menu-modal__course-name">Brandacujun della tradizione</p>
+        </div>
+        <div class="menu-modal__course">
+          <span class="menu-modal__course-label">Primo</span>
+          <p class="menu-modal__course-name">Riso Riserva San Massimo mantecato alla zucchina trombetta, con gorgonzola e anacardi al curry</p>
+        </div>
+        <div class="menu-modal__course">
+          <span class="menu-modal__course-label">Secondo</span>
+          <p class="menu-modal__course-name">Brasato di Manzo alla Barbera, spuma di patate e spinacino</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

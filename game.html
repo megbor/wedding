@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Magda &amp; Ivan — Il Minigioco</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1A0A10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      font-family: 'Jost', monospace;
+      overflow: hidden;
+    }
+    .game-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+    }
+    canvas {
+      border: 2px solid #7B2D3E;
+      border-radius: 4px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: pointer;
+      max-width: min(800px, calc(100vw - 32px));
+      height: auto;
+      display: block;
+    }
+    .back-link {
+      color: rgba(255,255,255,0.4);
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: #FAE8EE; }
+  </style>
+</head>
+<body>
+<div class="game-wrap">
+  <canvas id="c" width="800" height="260"></canvas>
+  <a href="index.html" class="back-link">← Torna al sito</a>
+</div>
+<!-- GIF tenute nel DOM così il browser le anima; Canvas le cattura frame per frame -->
+<img id="focaccia-img"    src="images/game/focaccia.png"            style="position:absolute;left:-9999px;visibility:hidden;" />
+<img id="celebrazione" src="images/game/celebrazione_finale.png" style="position:absolute;left:-9999px;visibility:hidden;" />
+<script>
+// ================================================================
+//  MAGDA & IVAN — IL GIOCO  |  pixel runner, 2 livelli + finale
+// ================================================================
+
+// ----------------------------------------------------------------
+//  PRELOAD SPRITE GIF
+// ----------------------------------------------------------------
+// Usa l'img nel DOM: il browser anima la GIF, Canvas cattura il frame corrente
+// ---- Ivan sprite frames (64×64 PNG) ----
+function loadFrames(pathPattern, count) {
+  return Array.from({ length: count }, (_, i) => {
+    const img = new Image();
+    img.src = pathPattern.replace('*', String(i).padStart(3, '0'));
+    return img;
+  });
+}
+// ---- Ivan ----
+const BASE_I = 'images/game/ivan/animations/';
+const IVAN_RUN   = loadFrames(BASE_I + 'running-4-frames/east/frame_*.png', 4);
+const IVAN_JUMP  = loadFrames(BASE_I + 'running-jump/east/frame_*.png', 8);
+const IVAN_FRONT = (() => { const i = new Image(); i.src = 'images/game/ivan/rotations/south.png'; return i; })();
+const ivanReady  = () => IVAN_RUN[0].complete && IVAN_RUN[0].naturalWidth > 0;
+
+function drawIvan(x, y, size) {
+  const sz = size || 80;
+  if (!ivanReady()) { spr(IVAN[0], x, y, SC); return; }
+  const isJumping = player && player.jumps > 0;
+  if (isJumping) {
+    const jf = Math.min(7, Math.max(0, Math.floor((player.vy + 13.5) / 3.4)));
+    ctx.drawImage(IVAN_JUMP[jf], x, y, sz, sz);
+  } else {
+    const rf = Math.floor((animTick || 0) / 6) % 4;
+    ctx.drawImage(IVAN_RUN[rf], x, y, sz, sz);
+  }
+}
+
+// ---- Magda ----
+const BASE_M = 'images/game/magda/animations/';
+const MAGDA_RUN   = loadFrames(BASE_M + 'running-4-frames/east/frame_*.png', 4);
+const MAGDA_JUMP  = loadFrames(BASE_M + 'jumping-1/east/frame_*.png', 9);
+const MAGDA_FRONT = (() => { const i = new Image(); i.src = 'images/game/magda/rotations/south.png'; return i; })();
+const MAGDA_CORRE = (() => { const i = new Image(); i.src = 'images/game/magda_corre.png'; return i; })();
+const magdaReady  = () => MAGDA_RUN[0].complete && MAGDA_RUN[0].naturalWidth > 0;
+
+function drawMagda(x, y, size) {
+  const sz = size || 76;
+  if (!magdaReady()) { spr(MAGDA[0], x, y, SC); return; }
+  const isJumping = player && player.jumps > 0;
+  if (isJumping) {
+    const jf = Math.min(8, Math.max(0, Math.floor((player.vy + 13.5) / 3.1)));
+    ctx.drawImage(MAGDA_JUMP[jf], x, y, sz, sz);
+  } else {
+    const rf = Math.floor((animTick || 0) / 6) % 4;
+    ctx.drawImage(MAGDA_RUN[rf], x, y, sz, sz);
+  }
+}
+
+// ---- Immagini ostacoli ----
+function loadImg(src) { const i = new Image(); i.src = src; return i; }
+const IMG = {
+  focaccia: document.getElementById('focaccia-img'),
+  acciuga:  loadImg('images/game/acciuga.png'),
+  vespa:    loadImg('images/game/vespa.png'),
+  pesto:    loadImg('images/game/pesto.png'),
+  fiat500:  loadImg('images/game/fiat500.png'),
+  piccione:    loadImg('images/game/background/piccione.png'),
+  gabbiano:    loadImg('images/game/background/gabbiano.png'),
+  gianduiotto: loadImg('images/game/background/gianduiotto.png'),
+  scudo:       loadImg('images/game/background/scudo.png'),
+  aereo:       loadImg('images/game/aereo_sposi.png'),
+};
+const imgReady = key => IMG[key].complete && IMG[key].naturalWidth > 0;
+
+const focacciaImg    = document.getElementById('focaccia-img');
+const focacciaReady  = () => imgReady('focaccia');
+const celebrazioneImg = document.getElementById('celebrazione');
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 800, H = 260;
+canvas.width = W; canvas.height = H;
+
+const GROUND = 208;   // y del suolo
+const SC = 3;         // scale sprite (1 pixel art unit = 3px)
+
+// ----------------------------------------------------------------
+//  PALETTE
+// ----------------------------------------------------------------
+const C = {
+  _: null,
+  S: '#FFD4A3', // pelle
+  h: '#2E1A00', // capelli scuri (Ivan)
+  H: '#C89030', // capelli biondi (Magda)
+  N: '#1A2744', // blu navy (abito Ivan)
+  W: '#FFFFFF', // bianco
+  w: '#F5EFEF', // bianco sporco (vestito Magda)
+  r: '#7B2D3E', // borgogna
+  R: '#E8A0B0', // rosa
+  b: '#111111', // nero
+  G: '#AAAAAA', // grigio
+  g: '#3A7D3A', // verde (pesto)
+  Y: '#E8C030', // giallo/oro
+  F: '#EDD58A', // pasta focaccia
+  f: '#C89040', // crosta focaccia
+  o: '#2A1800', // olive (buco focaccia)
+  a: '#B0BCC8', // acciuga argento
+  A: '#6878A0', // acciuga scuro
+  V: '#2E7D32', // verde vegetazione
+  v: '#66BB6A', // verde chiaro
+  T: '#F5F0DC', // torta bianca
+  t: '#D4AF6A', // torta dorata
+  k: '#6B5A8A', // montagna viola
+  K: '#E8E4F4', // neve
+  L: '#6B3A1F', // treno marrone
+  l: '#C0602A', // treno ruggine
+  s: '#2E6EA6', // mare
+  c: '#D4C07A', // sabbia
+  e: '#E06030', // arancione tramonto
+  p: '#483D28', // oliva scura
+};
+
+function px(rows) {
+  return rows.map(row => [...row].map(ch => C[ch] ?? null));
+}
+
+// ----------------------------------------------------------------
+//  SPRITE PIXEL ART
+// ----------------------------------------------------------------
+
+// Ivan (sposo) — 10×12
+const IVAN = [
+  px([  // frame 0
+    '__SSSS____',
+    '_ShSSShh__',
+    '_SSSSSS___',
+    '__SSSS____',
+    '_NrNNNN___',
+    'NWrNNNWN__',
+    'NNrNNNNN__',
+    '_NNNNNN___',
+    '_bN__Nb___',
+    '_bb__bb___',
+    '__________',
+    '__________',
+  ]),
+  px([  // frame 1 (gambe alternate)
+    '__SSSS____',
+    '_ShSSShh__',
+    '_SSSSSS___',
+    '__SSSS____',
+    '_NrNNNN___',
+    'NWrNNNWN__',
+    'NNrNNNNN__',
+    '_NNNNNN___',
+    '_bN___N___',
+    '_bb___Nb__',
+    '_____bb___',
+    '__________',
+  ]),
+];
+
+// Magda (sposa) — 10×12
+const MAGDA = [
+  px([  // frame 0
+    '__SSSS____',
+    '_SHSSSH___',
+    '_HSSSSH___',
+    '__SSSS____',
+    '__wwww____',
+    '_RwrwwR___',
+    '_wwwwww___',
+    '__Rwwwr___',
+    '_Rwwwwr___',
+    '_RRwwrr___',
+    '_RR__rr___',
+    '__________',
+  ]),
+  px([  // frame 1
+    '__SSSS____',
+    '_SHSSSH___',
+    '_HSSSSH___',
+    '__SSSS____',
+    '__wwww____',
+    '_RwrwwR___',
+    '_wwwwww___',
+    '__Rwwwr___',
+    'rRwwww____',
+    'rRwwwwr___',
+    'rr___Rr___',
+    '__________',
+  ]),
+];
+
+// Finale insieme — Ivan 10×12, Magda 10×12
+const IVAN_F = px([
+  '__SSSS____',
+  '_ShSSShh__',
+  '_SSSSSS___',
+  '__SSSS____',
+  '_NrNNNN___',
+  'NWrNNNWN__',
+  'NNrNNNNN__',
+  '_NNNNNN___',
+  '__NN_N____',
+  '__bN_Nb___',
+  '__bb_bb___',
+  '__________',
+]);
+const MAGDA_F = px([
+  '__SSSS____',
+  '_SHSSSH___',
+  '_HSSSSH___',
+  '__SSSS____',
+  '__wwww____',
+  '_RwrwwR___',
+  '_wwwwww___',
+  '_Rwwwwr___',
+  '_Rwwwwr___',
+  'RRwwwwrr__',
+  'RR____rr__',
+  '__________',
+]);
+
+// ---- Ostacoli ----
+
+// Focaccia 16×8
+const FOCACCIA = px([
+  '________________',
+  '_fFFFFFFFFFFFf__',
+  'FFFoFFFoFFFoFFF_',
+  'FFFFFFFFFFFFFFf_',
+  'fFFFoFFFoFFFoFF_',
+  'FFFFFFFFFFFFFFf_',
+  '_fFFFFFFFFFFFf__',
+  '________________',
+]);
+
+// Barattolo pesto 8×11
+const PESTO = px([
+  '___GGG__',
+  '__GYYG__',
+  '_Gggggp_',
+  '_GgpggG_',
+  '_GggggG_',
+  '_GpgggG_',
+  '_GggggG_',
+  '_GggpgG_',
+  '_GggggG_',
+  '__GGGG__',
+  '________',
+]);
+
+// Acciuga 14×7
+const ACCIUGHE = px([
+  '____aaAAAAA___',
+  '__aaAAAAAAAAa_',
+  '_aAAAAAbAAAAaa',
+  'aAAAAAAAAAaA__',
+  '_aAAAAAAAAa___',
+  '__aaAAAAAa____',
+  '____aaaa______',
+]);
+
+// Bouquet 10×13
+const BOUQUET = px([
+  '___RRR____',
+  '__RRRRR___',
+  '_RRRrRRR__',
+  '_RRRrRRR__',
+  '__RRrRRR__',
+  '___RRrR___',
+  '____VV____',
+  '____VV____',
+  '___VVV____',
+  '____VV____',
+  '____VV____',
+  '___VVV____',
+  '____V_____',
+]);
+
+// Treno 18×9
+const TRENO = px([
+  '__________________',
+  '__LLLLLLLLLLLLLL__',
+  '_LlLLLLLWWWWLLL__',
+  'LLLLLLLLLLLLLLLL__',
+  'LLLLLLLLLLLLLLLL__',
+  '_LLLLLLLLLLLLLL___',
+  '__LGGLLLLLLGGLL___',
+  '__bbbb____bbbb____',
+  '__________________',
+]);
+
+// ----------------------------------------------------------------
+//  DRAW SPRITE
+// ----------------------------------------------------------------
+function spr(sprite, x, y, scale) {
+  const sc = scale || SC;
+  for (let r = 0; r < sprite.length; r++) {
+    for (let c = 0; c < sprite[r].length; c++) {
+      const col = sprite[r][c];
+      if (col) {
+        ctx.fillStyle = col;
+        ctx.fillRect(Math.round(x + c * sc), Math.round(y + r * sc), sc, sc);
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------
+//  STATO DI GIOCO
+// ----------------------------------------------------------------
+const ST = { START: 0, PLAY: 1, DEAD: 2, CLEAR: 3, WIN: 4, HOWTO: 5, COUNTDOWN: 6 };
+let countdownTick = 0;
+let state = ST.START;
+let level = 1;
+let tick  = 0;
+let score = 0;
+const TARGET = 1280;
+
+let player, obstacles, particles, speed;
+let animTick = 0, animFrame = 0;
+let finishRunning = false; // player corre verso il traguardo (sfondo congelato)
+
+// Aereo degli sposi in alto
+let aereoX = -9999, aereoY = 0, aereoTick = 0, aereoNext = 420;
+
+// Offset parallasse sfondo (livello 1)
+let bgOff1 = 0, bgOff2 = 0, bgOff3 = 0, seaOff = 0;
+
+// Strada in loop (entrambi i livelli)
+const STRADA = (() => { const i = new Image(); i.src = 'images/game/strada.png'; return i; })();
+let stradaOff = 0;
+const MARE = (() => { const i = new Image(); i.src = 'images/game/background/mare.png'; return i; })();
+let mareOff = 0;
+const CIELO = (() => { const i = new Image(); i.src = 'images/game/background/cielo.png'; return i; })();
+let cieloOff = 0;
+const MONTAGNE1 = (() => { const i = new Image(); i.src = 'images/game/background/montagne1.png'; return i; })();
+let mont1AbsOff = 0;
+let mont1MaxK = Infinity;
+let mont1Done = false; // true quando l'ultima tile è uscita dallo schermo
+const MOLE = (() => { const i = new Image(); i.src = 'images/game/background/mole.png'; return i; })();
+let moleX = 0;
+const MONDOVI = (() => { const i = new Image(); i.src = 'images/game/background/mondovi.png'; return i; })();
+let mondoviAbsOff = 0, mondoviMaxK = Infinity;
+const PORTA_SUSA = (() => { const i = new Image(); i.src = 'images/game/background/porta_susa.png'; return i; })();
+let portaSusaX = 0;
+const COLLINEF = (() => { const i = new Image(); i.src = 'images/game/background/collinef.png'; return i; })();
+let collinefAbsOff = 0;
+let collinefMaxK = Infinity;
+let collinefDone = false;
+const MARE2 = (() => { const i = new Image(); i.src = 'images/game/background/mare_livello2.png'; return i; })();
+let mare2Off = 0;
+const LANTERNA = (() => { const i = new Image(); i.src = 'images/game/background/lanterna.png'; return i; })();
+let lantX = 0; // posizione x lanterna (parte a sinistra, scorre a sinistra)
+const ACQUARIO = (() => { const i = new Image(); i.src = 'images/game/background/acquario.png'; return i; })();
+let acquaX = 0; // parte fuori schermo a destra, entra dopo un po'
+const BARCA1 = (() => { const i = new Image(); i.src = 'images/game/background/barca1.png'; return i; })();
+const BARCA2 = (() => { const i = new Image(); i.src = 'images/game/background/barca2.png'; return i; })();
+let barca1X = 0, barca2X = 0;
+const COLLINA = (() => { const i = new Image(); i.src = 'images/game/background/collina_base.png'; return i; })();
+let collinaOff1 = 0, collinaOff2 = 0;
+const SAVONA = (() => { const i = new Image(); i.src = 'images/game/background/savona.png'; return i; })();
+let savX = 0;
+const GALLINARA = (() => { const i = new Image(); i.src = 'images/game/background/gallinara.png'; return i; })();
+let gallX = 0;
+const DIANO = (() => { const i = new Image(); i.src = 'images/game/background/diano marina.png'; return i; })();
+let dianoX = 0;
+
+function resetLevel(lv) {
+  level = lv;
+  score = 0;
+  speed = lv === 1 ? 4.2 : 4.6;
+  obstacles = [];
+  collectibles = [];
+  collectTick = 0; nextCollect = 220;
+  shieldTick = 0;
+  particles = [];
+  animTick = 0; animFrame = 0;
+  bgOff1 = bgOff2 = bgOff3 = seaOff = stradaOff = lantX = 0;
+  collinaOff1 = collinaOff2 = cieloOff = mont1AbsOff = 0;
+  collinefAbsOff = -W;
+  mare2Off = 0; // offset assoluto, tile partono da W (bordo destro)
+  mont1MaxK = collinefMaxK = mondoviMaxK = Infinity;
+  mont1Done = collinefDone = false;
+  mondoviAbsOff = -W; // parte fuori destra, entra scrollando
+  if (lv === 1) {
+    acquaX  = W + 526;
+    barca1X = W + 1136;
+    savX    = W + 1916;
+    barca2X = W + 2828;
+    gallX   = W + 3200;
+    dianoX  = W + 4900;
+  } else {
+    acquaX = barca1X = barca2X = lantX = W * 99; // non usate nel livello 2
+    moleX      = W - 300;
+    portaSusaX = W + 200; // entra poco dopo la mole
+    savX   = W + 2330;  // 60%
+    gallX  = W + 3142;  // 75%
+    dianoX = W + 3600;  // ~85%
+  }
+  tick = 0;
+  finishLine = null;
+  finishRunning = false;
+  nextInterval = 130;
+  aereoX = -9999; aereoTick = 0; aereoNext = 420 + Math.floor(Math.random() * 300);
+  obsTick = 0;
+  const playerFloor = lv === 1 ? 71 : 70; // Ivan 80px -9px pad; Magda 76px -6px pad
+  player = {
+    x: 80, y: GROUND - playerFloor,
+    vy: 0, jumps: 0,
+    frame: 0,
+    sprite: lv === 1 ? IVAN : MAGDA,
+  };
+  state = ST.COUNTDOWN;
+  countdownTick = 0;
+}
+
+// ----------------------------------------------------------------
+//  SFONDO
+// ----------------------------------------------------------------
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpHex(ca, cb, t) {
+  const a = parseInt(ca.slice(1), 16), b = parseInt(cb.slice(1), 16);
+  const r = Math.round(lerp((a >> 16) & 255, (b >> 16) & 255, t));
+  const g = Math.round(lerp((a >>  8) & 255, (b >>  8) & 255, t));
+  const bl = Math.round(lerp( a       & 255,  b        & 255, t));
+  return '#' + ((r << 16) | (g << 8) | bl).toString(16).padStart(6, '0');
+}
+
+function drawSky(top, bot) {
+  const gd = ctx.createLinearGradient(0, 0, 0, GROUND);
+  gd.addColorStop(0, top); gd.addColorStop(1, bot);
+  ctx.fillStyle = gd;
+  ctx.fillRect(0, 0, W, GROUND);
+}
+
+function drawSea() {
+  seaOff = (seaOff + speed * 0.25) % 50;
+  // mare sfondo
+  ctx.fillStyle = '#2E6EA6';
+  ctx.fillRect(0, GROUND - 70, W, 70);
+  // creste onde
+  ctx.fillStyle = '#3A84C8';
+  for (let x = -seaOff; x < W + 50; x += 50) {
+    ctx.beginPath();
+    ctx.ellipse(x + 25, GROUND - 70, 25, 12, 0, Math.PI, 0);
+    ctx.fill();
+  }
+  // bordo onda
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  for (let x = 0; x <= W; x += 3) {
+    const y = GROUND - 72 + Math.sin((x + tick * 1.5) / 22) * 3;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(W, GROUND - 55); ctx.lineTo(0, GROUND - 55);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawLigurian() {
+  bgOff2 = (bgOff2 + speed * 0.4) % 160;
+  const cols = ['#E8CC80','#D4A060','#C89050','#E0C070','#F0D090','#DCBC74'];
+  for (let i = -1; i < 7; i++) {
+    const bx = i * 160 - bgOff2;
+    const bh = 35 + (i * 41 % 30);
+    ctx.fillStyle = cols[((i % 6) + 6) % 6];
+    ctx.fillRect(bx, GROUND - bh - 70, 58, bh);
+    // finestre con persiane verdi
+    ctx.fillStyle = 'rgba(120,170,220,0.5)';
+    for (let wy = 4; wy < bh - 8; wy += 14) {
+      for (let wx = 5; wx < 52; wx += 16) {
+        ctx.fillRect(bx + wx, GROUND - bh - 70 + wy, 8, 8);
+        ctx.fillStyle = '#2E6B30';
+        ctx.fillRect(bx + wx - 4, GROUND - bh - 70 + wy, 4, 8);
+        ctx.fillRect(bx + wx + 8, GROUND - bh - 70 + wy, 4, 8);
+        ctx.fillStyle = 'rgba(120,170,220,0.5)';
+      }
+    }
+  }
+}
+
+function drawMountains() {
+  bgOff1 = (bgOff1 + speed * 0.15) % 320;
+  ctx.fillStyle = '#6B5A8A';
+  for (let i = -1; i < 4; i++) {
+    const mx = i * 320 - bgOff1;
+    ctx.beginPath();
+    ctx.moveTo(mx, GROUND - 20);
+    ctx.lineTo(mx + 160, GROUND - 155);
+    ctx.lineTo(mx + 320, GROUND - 20);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#E8E4F4';
+    ctx.beginPath();
+    ctx.moveTo(mx + 138, GROUND - 133);
+    ctx.lineTo(mx + 160, GROUND - 155);
+    ctx.lineTo(mx + 182, GROUND - 133);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6B5A8A';
+  }
+}
+
+function drawCity() {
+  bgOff3 = (bgOff3 + speed * 0.4) % 130;
+  const grays = ['#888','#999','#777','#AAA','#666','#959595'];
+  for (let i = -1; i < 8; i++) {
+    const bx = i * 130 - bgOff3;
+    const bh = 55 + (i * 47 % 60);
+    ctx.fillStyle = grays[((i % 6) + 6) % 6];
+    ctx.fillRect(bx, GROUND - bh - 20, 72, bh);
+    ctx.fillStyle = 'rgba(180,210,255,0.35)';
+    for (let wy = 4; wy < bh; wy += 13) {
+      for (let wx = 5; wx < 66; wx += 14) {
+        ctx.fillRect(bx + wx, GROUND - bh - 20 + wy, 8, 8);
+      }
+    }
+  }
+}
+
+function drawHills(t) {
+  bgOff2 = (bgOff2 + speed * 0.3) % 220;
+  ctx.fillStyle = lerpHex('#6B5A8A', '#3A7030', t);
+  for (let i = -1; i < 5; i++) {
+    const hx = i * 220 - bgOff2;
+    ctx.beginPath();
+    ctx.moveTo(hx, GROUND - 20);
+    ctx.bezierCurveTo(hx + 55, GROUND - 110, hx + 165, GROUND - 110, hx + 220, GROUND - 20);
+    ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawGround(c1, c2) {
+  ctx.fillStyle = c1;
+  ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillStyle = c2;
+  ctx.fillRect(0, GROUND, W, 3);
+  ctx.fillStyle = c2;
+  for (let x = (tick * speed) % 22; x < W; x += 22) ctx.fillRect(x, GROUND + 7, 4, 2);
+}
+
+function drawMare() {
+  if (!MARE.complete || !MARE.naturalWidth) {
+    // fallback procedurale se immagine non ancora carica
+    drawSky('#87CEEB', '#C9E8F5');
+    drawSea();
+    return;
+  }
+  // tila l'immagine orizzontalmente coprendo tutta l'area sopra GROUND
+  const mh = GROUND;
+  const mw = Math.round(MARE.naturalWidth / MARE.naturalHeight * mh);
+  if (state === ST.PLAY && !finishRunning) mareOff = (mareOff + speed * 0.5) % mw;
+  for (let x = -mareOff; x < W + mw; x += mw) {
+    ctx.drawImage(MARE, x, 0, mw, mh);
+  }
+}
+
+function drawBarca1() {
+  if (!BARCA1.complete || !BARCA1.naturalWidth) return;
+  const bh = 100, bw = Math.round(677 / 369 * bh);
+  // vicina: scafo appoggiato sulla linea del mare (GROUND - 70), compensando padding basso
+  const botPad = Math.round(25 / 369 * bh);
+  const by = GROUND - 70 - bh + botPad;
+  if (state === ST.PLAY && !finishRunning) barca1X -= speed * 0.5;
+  if (barca1X + bw < 0 || barca1X > W) return;
+  ctx.drawImage(BARCA1, barca1X, by, bw, bh);
+}
+
+function drawColline() {
+  if (!COLLINA.complete || !COLLINA.naturalWidth) return;
+
+  // Fila 1 — lontana, lenta, piccola
+  const h1 = 120, w1 = Math.round(790 / 316 * h1);
+  if (state === ST.PLAY) collinaOff1 = (collinaOff1 + speed * 0.2) % w1;
+  for (let x = -collinaOff1; x < W + w1; x += w1)
+    ctx.drawImage(COLLINA, x, GROUND - h1, w1, h1);
+
+  // Fila 2 — media, sfalsata di metà passo
+  const h2 = 160, w2 = Math.round(790 / 316 * h2);
+  if (state === ST.PLAY) collinaOff2 = (collinaOff2 + speed * 0.35) % w2;
+  for (let x = -collinaOff2 + w2 / 2; x < W + w2; x += w2)
+    ctx.drawImage(COLLINA, x, GROUND - h2, w2, h2);
+
+  // Fila 3 — vicina, grande, sfalsata di 1/3
+  const h3 = 210, w3 = Math.round(790 / 316 * h3);
+  for (let x = -collinaOff2 * 1.4 % w3 + w3 / 3; x < W + w3; x += w3)
+    ctx.drawImage(COLLINA, x, GROUND - h3, w3, h3);
+}
+
+function drawSavona() {
+  if (!SAVONA.complete || !SAVONA.naturalWidth) return;
+  const lh = GROUND;
+  const lw = Math.round(664 / 376 * lh);
+  if (state === ST.PLAY && !finishRunning) savX -= speed * 0.5;
+  if (savX + lw < 0 || savX > W) return;
+  ctx.drawImage(SAVONA, savX, 0, lw, lh);
+}
+
+function drawBarca2() {
+  if (!BARCA2.complete || !BARCA2.naturalWidth) return;
+  const bh = 70, bw = Math.round(677 / 369 * bh);
+  // lontana: più su nell'acqua ma ancora sull'acqua
+  const botPad = Math.round(25 / 369 * bh);
+  const by = GROUND - 90 - bh + botPad;
+  if (state === ST.PLAY && !finishRunning) barca2X -= speed * 0.5;
+  if (barca2X + bw < 0 || barca2X > W) return;
+  ctx.drawImage(BARCA2, barca2X, by, bw, bh);
+}
+
+function drawDiano() {
+  if (!DIANO.complete || !DIANO.naturalWidth) return;
+  const dh = GROUND;
+  const dw = Math.round(491 / 331 * dh);
+  // entrambi i livelli: appare quando la finish line entra in scena o durante finishRunning
+  if (state !== ST.PLAY && state !== ST.CLEAR && state !== ST.WIN) return;
+  if (!finishRunning && score < TARGET) return;
+  ctx.drawImage(DIANO, W - dw, 0, dw, dh);
+}
+
+function drawGallinara() {
+  if (!GALLINARA.complete || !GALLINARA.naturalWidth) return;
+  const gh = Math.round(GROUND * 0.65);
+  const gw = Math.round(612 / 408 * gh);
+  const botPad = Math.round(98 / 408 * gh); // padding trasparente basso scalato
+  const gy = GROUND - 70 - gh + botPad; // isola seduta sulla linea del mare
+  if (state === ST.PLAY && !finishRunning) gallX -= speed * 0.5;
+  if (gallX + gw < 0 || gallX > W) return;
+  ctx.drawImage(GALLINARA, gallX, gy, gw, gh);
+}
+
+function drawAcquario() {
+  if (!ACQUARIO.complete || !ACQUARIO.naturalWidth) return;
+  const lh = GROUND;
+  const lw = Math.round(ACQUARIO.naturalWidth / ACQUARIO.naturalHeight * lh);
+  if (state === ST.PLAY && !finishRunning) acquaX -= speed * 0.5;
+  if (acquaX + lw < 0) return;
+  if (acquaX > W) return;
+  ctx.drawImage(ACQUARIO, acquaX, 0, lw, lh);
+}
+
+function drawLanterna() {
+  if (!LANTERNA.complete || !LANTERNA.naturalWidth) return;
+  const lh = GROUND;
+  const lw = Math.round(LANTERNA.naturalWidth / LANTERNA.naturalHeight * lh);
+  if (state === ST.PLAY && !finishRunning) lantX -= speed * 0.5;
+  if (lantX + lw < 0) return; // uscita a sinistra, non disegnare più
+  ctx.drawImage(LANTERNA, lantX, 0, lw, lh);
+}
+
+function drawStrada() {
+  if (!STRADA.complete || !STRADA.naturalWidth) return;
+  const sh = H - GROUND; // altezza della fascia strada
+  const sw = Math.round(STRADA.naturalWidth / STRADA.naturalHeight * sh);
+  if (state === ST.PLAY && !finishRunning) stradaOff = (stradaOff + speed) % sw;
+  for (let x = -stradaOff; x < W + sw; x += sw) {
+    ctx.drawImage(STRADA, x, GROUND, sw, sh);
+  }
+}
+
+function drawBackground() {
+  const prog = score / TARGET;
+  if (level === 1) {
+    // Ivan: riviera ligure
+    drawMare();
+    drawBarca2();
+    drawGallinara();
+    drawSavona();
+    drawBarca1();
+    drawLanterna();
+    drawAcquario();
+    drawDiano();
+    drawStrada();
+  } else {
+    // Magda: cielo in loop
+    // nota: drawMole chiamata dopo cielo, prima delle montagne
+    if (CIELO.complete && CIELO.naturalWidth) {
+      const ch = GROUND, cw = Math.round(1536 / 1024 * ch);
+      if (state === ST.PLAY && !finishRunning) cieloOff = (cieloOff + speed * 0.5) % cw;
+      for (let x = -cieloOff; x < W + cw; x += cw)
+        ctx.drawImage(CIELO, x, 0, cw, ch);
+    }
+    // mare livello 2 — entra da destra al 60%, allineato con la fine delle colline
+    if (prog >= 0.537 && MARE2.complete && MARE2.naturalWidth) {
+      const mh = Math.round(GROUND * 0.60), mw = Math.round(1446 / 341 * mh);
+      if (state === ST.PLAY && !finishRunning) mare2Off += speed * 0.45;
+      // k=0 parte da W al momento del 60%, poi scorre
+      for (let k = 0; ; k++) {
+        const x = W + k * mw - mare2Off;
+        if (x > W) break;
+        if (x + mw < 0) continue;
+        ctx.drawImage(MARE2, x, GROUND - mh, mw, mh);
+      }
+    }
+    // colline (dietro) — iniziano a scorrere da destra al 20%
+    if (prog >= 0.20 && COLLINEF.complete && COLLINEF.naturalWidth) {
+      const dstH = Math.round(GROUND * 0.80); // 80% dell'altezza, ancorata in basso
+      const cw = Math.round(1000 / 450 * dstH);
+      if (state === ST.PLAY && !finishRunning) collinefAbsOff += speed * 0.45;
+      if (prog >= 0.60 && collinefMaxK === Infinity)
+        collinefMaxK = Math.floor((W + collinefAbsOff) / cw);
+      const startK = Math.floor((collinefAbsOff - cw) / cw);
+      const endK = collinefMaxK === Infinity
+        ? Math.ceil((W + collinefAbsOff) / cw)
+        : collinefMaxK;
+      for (let k = Math.max(0, startK); k <= endK; k++) {
+        const overlap = ((k * 11 + 5) % 5) * 0.06 * cw;
+        const x = k * cw - collinefAbsOff - overlap * k;
+        if (x + cw < 0) continue;
+        ctx.drawImage(COLLINEF, x, GROUND - dstH, cw, dstH);
+      }
+      if (collinefMaxK !== Infinity && !collinefDone) {
+        const lastX = collinefMaxK * cw - collinefAbsOff;
+        if (lastX + cw < 0) collinefDone = true;
+      }
+    }
+    // montagne (davanti) — entrano nei primi 20%, poi escono
+    if (MONTAGNE1.complete && MONTAGNE1.naturalWidth) {
+      const mh = GROUND, mw = Math.round(787 / 317 * mh);
+      if (state === ST.PLAY && !finishRunning) mont1AbsOff += speed * 0.45;
+      if (prog >= 0.20 && mont1MaxK === Infinity)
+        mont1MaxK = Math.ceil((W + mont1AbsOff) / mw);
+      const startK = Math.floor((mont1AbsOff - mw) / mw);
+      const endK = mont1MaxK === Infinity
+        ? Math.ceil((W + mont1AbsOff) / mw)
+        : mont1MaxK;
+      for (let k = startK; k <= endK; k++) {
+        const overlap = ((k * 7 + 3) % 5) * 0.06 * mw;
+        const x = k * mw - mont1AbsOff - overlap * k;
+        if (x + mw < 0) continue;
+        ctx.drawImage(MONTAGNE1, x, 0, mw, mh);
+      }
+      if (mont1MaxK !== Infinity && !mont1Done) {
+        const lastX = mont1MaxK * mw - mont1AbsOff;
+        if (lastX + mw < 0) mont1Done = true;
+      }
+    }
+    // bandiere mondovi — davanti alle colline, 2 tile, entrano da destra
+    if (prog >= 0.14 && MONDOVI.complete && MONDOVI.naturalWidth) {
+      const mh = Math.round(GROUND * 0.75), mw = Math.round(612 / 279 * mh);
+      if (state === ST.PLAY && !finishRunning) mondoviAbsOff += speed * 0.45;
+      if (prog >= 0.60 && mondoviMaxK === Infinity)
+        mondoviMaxK = 1;
+      const endK = mondoviMaxK === Infinity ? 1 : mondoviMaxK;
+      for (let k = 0; k <= endK; k++) {
+        const x = W + k * mw - mondoviAbsOff;
+        if (x + mw < 0 || x > W) continue;
+        ctx.drawImage(MONDOVI, x, GROUND - mh, mw, mh);
+      }
+    }
+    // mole — davanti alle montagne
+    if (MOLE.complete && MOLE.naturalWidth) {
+      const mh = GROUND, mw2 = Math.round(1024 / 1310 * mh * 1.2);
+      if (state === ST.PLAY && !finishRunning) moleX -= speed * 0.45;
+      if (moleX + mw2 >= 0 && moleX <= W)
+        ctx.drawImage(MOLE, moleX, 0, mw2, mh);
+    }
+    // porta susa — dopo la mole
+    if (PORTA_SUSA.complete && PORTA_SUSA.naturalWidth) {
+      const ph = Math.round(GROUND * 0.65), pw = Math.round(694 / 359 * ph);
+      if (state === ST.PLAY && !finishRunning) portaSusaX -= speed * 0.45;
+      if (portaSusaX + pw >= 0 && portaSusaX <= W)
+        ctx.drawImage(PORTA_SUSA, portaSusaX, GROUND - ph, pw, ph);
+    }
+    drawSavona();
+    drawGallinara();
+    drawDiano();
+    drawStrada();
+  }
+}
+
+// ----------------------------------------------------------------
+//  OSTACOLI
+// ----------------------------------------------------------------
+// heights: 'ground' = a terra | 'float' = basso in aria (salta) | 'fly' = alto (non saltare, ci passi sotto)
+// Livello 1 — Genova / Riviera
+// dy = offset verticale fine (positivo = scende, per PNG con spazio trasparente in basso)
+const OBS1 = [
+  { img: 'gabbiano', w: 56, h: 43, heights: ['fly', 'fly', 'float'] },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+];
+const OBS2_CITY = [
+  { img: 'fiat500',  w: 114, h: 112, heights: ['ground'], dy: 49 },
+  { img: 'fiat500',  w: 114, h: 112, heights: ['ground'], dy: 49 },
+  { img: 'fiat500',  w: 114, h: 112, heights: ['ground'], dy: 49 },
+  { img: 'fiat500',  w: 114, h: 112, heights: ['ground'], dy: 49 },
+  { img: 'piccione', w: 56, h: 43, heights: ['fly', 'fly', 'float'] },
+];
+const OBS2_MARE = [
+  { img: 'gabbiano', w: 56, h: 43, heights: ['fly', 'fly', 'float'] },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+  { img: 'vespa',    w: 114, h: 76, heights: ['ground'], dy: 13 },
+];
+const OBS2 = OBS2_CITY;
+
+// y offset per tipo di altezza
+// fly: abbastanza alto da permettere al player (64px) di passarci sotto con margine
+const HEIGHT_OFFSET = { ground: 0, float: -38, fly: -110 };
+
+let obsTick = 0, nextInterval = 130;
+
+// ---- Collectibles (power-up) ----
+// Lv1: pesto + focaccia | Lv2: gianduiotto + focaccia
+const BONUS1 = [
+  { img: 'pesto',    w: 48, h: 48, label: 'pesto' },
+  { img: 'focaccia', w: 48, h: 40, label: 'focaccia' },
+];
+const BONUS2 = [
+  { img: 'gianduiotto', w: 46, h: 33, label: 'gianduiotto' },
+  { img: 'focaccia',    w: 48, h: 40, label: 'focaccia' },
+];
+let collectibles = [];
+let collectTick = 0, nextCollect = 220;
+let shieldTick = 0;         // frames rimasti di scudo (0 = nessuno scudo)
+const SHIELD_DURATION = 180; // ~3 secondi
+
+function spawnObs() {
+  const pool = level === 1 ? OBS1 : (score / TARGET >= 0.60 ? OBS2_MARE : OBS2_CITY);
+  const t = pool[Math.floor(Math.random() * pool.length)];
+  const ht = t.heights[Math.floor(Math.random() * t.heights.length)];
+  const yOff = HEIGHT_OFFSET[ht] + (t.dy || 0);
+  const baseY = GROUND - t.h + yOff;
+  const extra = {};
+  if (t.img === 'acciuga' || (t.img === 'pesto' && ht === 'float')) { extra.baseY = baseY; extra.bobPhase = Math.random() * Math.PI * 2; }
+  if (t.img === 'piccione' || t.img === 'gabbiano') { extra.baseY = baseY; extra.bobPhase = Math.random() * Math.PI * 2; extra.wobblePhase = Math.random() * Math.PI * 2; }
+  if (t.img === 'vespa' || t.img === 'fiat500') { extra.vx = speed * 1.8; }
+  obstacles.push({ x: W + 10, y: baseY, ht, img: t.img, w: t.w, h: t.h, ...extra });
+}
+
+function updateObs() {
+  obsTick++;
+  if (obsTick >= nextInterval && score < TARGET - 250) {
+    spawnObs();
+    obsTick = 0;
+    nextInterval = Math.max(44, 105 - score * 0.07) + Math.floor(Math.random() * 40 - 15);
+  }
+  obstacles.forEach(o => {
+    o.x -= o.vx !== undefined ? o.vx : speed;
+    if (o.vx !== undefined) o.vx = Math.min(o.vx + 0.015, speed * 2.4); // accelera leggermente
+    if (o.baseY !== undefined) o.y = o.baseY + Math.sin(tick * 0.06 + o.bobPhase) * 18;
+    if (o.wobblePhase !== undefined) o.x += Math.sin(tick * 0.09 + o.wobblePhase) * 1.2; // sinistra/destra
+  });
+  obstacles = obstacles.filter(o => o.x > -80);
+}
+
+function drawObs() {
+  obstacles.forEach(o => {
+    // ombra a terra per ostacoli in volo (aiuta a capire che si passa sotto)
+    if (o.ht === 'fly') {
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.fillRect(o.x + 6, GROUND - 4, o.w - 12, 4);
+    }
+    if (o.img && imgReady(o.img)) {
+      ctx.drawImage(IMG[o.img], o.x, o.y, o.w, o.h);
+    }
+  });
+}
+
+// ----------------------------------------------------------------
+//  TRAGUARDO
+// ----------------------------------------------------------------
+let finishLine = null;
+
+function spawnFinish() {
+  finishLine = { x: W + 80 };
+}
+
+function updateFinish() {
+  if (finishLine && finishLine.x > W / 2) finishLine.x -= speed;
+}
+
+function drawFinish() {
+  if (!finishLine) return;
+  const fx = Math.round(finishLine.x);
+  const span  = 64;          // larghezza arco
+  const poleH = 85;
+  const poleW = 7;
+  const bnrH  = 22;
+  const top   = GROUND - poleH;
+
+  // pali dorati
+  ctx.fillStyle = '#C8A020';
+  ctx.fillRect(fx,          top, poleW, poleH);
+  ctx.fillRect(fx + span,   top, poleW, poleH);
+
+  // riflesso pali
+  ctx.fillStyle = '#FFD700';
+  ctx.fillRect(fx + 1,        top + 4, 2, poleH - 8);
+  ctx.fillRect(fx + span + 1, top + 4, 2, poleH - 8);
+
+  // banner borgogna
+  ctx.fillStyle = '#7B2D3E';
+  ctx.fillRect(fx, top, span + poleW, bnrH);
+
+  // bordo banner
+  ctx.fillStyle = '#C8A020';
+  ctx.fillRect(fx,              top,        span + poleW, 2);
+  ctx.fillRect(fx,              top + bnrH, span + poleW, 2);
+
+  // testo banner
+  ctx.font = 'bold 11px Jost, sans-serif';
+  ctx.fillStyle = '#FAE8EE';
+  ctx.textAlign = 'center';
+  ctx.fillText('DIANO ♥', fx + (span + poleW) / 2, top + 15);
+  ctx.textAlign = 'left';
+
+  // frange animate
+  const fringeY = top + bnrH + 2;
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#F0C0CE' : '#FFD700';
+    const swing = Math.sin(tick * 0.12 + i * 0.9) * 3;
+    ctx.fillRect(fx + 5 + i * 10, fringeY + swing, 5, 10);
+  }
+
+  // cuori che salgono
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#F0C0CE';
+  const hx = fx + (span + poleW) / 2;
+  ctx.fillText('♥', hx - 8 + Math.sin(tick * 0.07) * 4, top - 8  - (tick % 80) * 0.4);
+  ctx.fillText('♥', hx + 6 + Math.sin(tick * 0.09) * 3, top - 20 - (tick % 60) * 0.5);
+}
+
+// ----------------------------------------------------------------
+//  COLLECTIBLES
+// ----------------------------------------------------------------
+function spawnCollect() {
+  const pool = level === 1 ? BONUS1 : (score / TARGET < 0.60 ? [BONUS2[0]] : [BONUS2[1]]);
+  const t = pool[Math.floor(Math.random() * pool.length)];
+  // altezza: a terra o flottante
+  const onGround = Math.random() < 0.5;
+  const y = onGround ? GROUND - t.h : GROUND - t.h - 38;
+  collectibles.push({ x: W + 10, y, w: t.w, h: t.h, img: t.img });
+}
+
+function updateCollect() {
+  collectTick++;
+  if (collectTick >= nextCollect && score < TARGET - 250) {
+    spawnCollect();
+    collectTick = 0;
+    nextCollect = 260 + Math.floor(Math.random() * 140);
+  }
+  collectibles.forEach(c => { c.x -= speed; });
+  // check raccolta
+  const pw = 28, ph = 44, px1 = player.x + 18, py1 = player.y + 16;
+  collectibles = collectibles.filter(c => {
+    if (px1 < c.x + c.w && px1 + pw > c.x && py1 < c.y + c.h && py1 + ph > c.y) {
+      shieldTick = SHIELD_DURATION;
+      return false;
+    }
+    return c.x > -80;
+  });
+}
+
+function drawCollect() {
+  collectibles.forEach(c => {
+    if (imgReady(c.img)) ctx.drawImage(IMG[c.img], c.x, c.y, c.w, c.h);
+    // alone luminoso attorno al bonus
+    ctx.save();
+    ctx.globalAlpha = 0.3 + Math.sin(tick * 0.15) * 0.15;
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.ellipse(c.x + c.w/2, c.y + c.h/2, c.w*0.65, c.h*0.65, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    if (imgReady(c.img)) ctx.drawImage(IMG[c.img], c.x, c.y, c.w, c.h);
+  });
+}
+
+function drawShield() {
+  if (shieldTick <= 0 || !imgReady('scudo')) return;
+  const sz = 110; // dimensione scudo centrata sul personaggio
+  const sw = Math.round(763 / 683 * sz);
+  const px = player.x + (level === 1 ? 40 : 32) - sw / 2;
+  const py = player.y + (level === 1 ? 40 : 32) - sz / 2;
+  const alpha = Math.min(1, shieldTick / 30) * (0.75 + Math.sin(tick * 0.15) * 0.2);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(IMG.scudo, px, py, sw, sz);
+  ctx.restore();
+}
+
+// ----------------------------------------------------------------
+//  AEREO DEGLI SPOSI
+// ----------------------------------------------------------------
+function updateAereo() {
+  if (state !== ST.PLAY) return;
+  aereoTick++;
+  if (aereoX <= -9999) {
+    // in attesa del prossimo passaggio
+    if (aereoTick >= aereoNext) {
+      aereoX = W + 20;
+      aereoY = 8 + Math.floor(Math.random() * 28); // varia altezza tra 8 e 36px
+      aereoTick = 0;
+      aereoNext = 600 + Math.floor(Math.random() * 500); // ogni 10-18 secondi ca.
+    }
+  } else {
+    aereoX -= 2.8;
+    if (aereoX < -220) aereoX = -9999; // uscito a sinistra
+  }
+}
+
+function drawAereo() {
+  if (aereoX <= -9999 || !imgReady('aereo')) return;
+  // proporzioni originali, altezza ~50px
+  const ah = 50;
+  const aw = Math.round(IMG.aereo.naturalWidth / IMG.aereo.naturalHeight * ah);
+  ctx.drawImage(IMG.aereo, aereoX, aereoY, aw, ah);
+}
+
+// ----------------------------------------------------------------
+//  COLLISIONE
+// ----------------------------------------------------------------
+let deathCause = null;
+function hit() {
+  if (shieldTick > 0) return false; // scudo attivo
+  const pw = 28, ph = 44;
+  const px1 = player.x + 18, py1 = player.y + 16;
+  for (const o of obstacles) {
+    if (px1 < o.x + o.w - 6 && px1 + pw > o.x + 6 &&
+        py1 < o.y + o.h - 4 && py1 + ph > o.y + 4) {
+      deathCause = o.img;
+      return true;
+    }
+  }
+  return false;
+}
+
+// ----------------------------------------------------------------
+//  PARTICELLE
+// ----------------------------------------------------------------
+function burst(x, y) {
+  const cols = ['#FAE8EE','#F0C0CE','#7B2D3E','#FFD700','#FFFFFF'];
+  for (let i = 0; i < 22; i++) particles.push({
+    x, y,
+    vx: (Math.random() - 0.5) * 9,
+    vy: (Math.random() - 1.8) * 7,
+    life: 1,
+    col: cols[i % cols.length],
+    sz: 2 + Math.random() * 3,
+  });
+}
+function updatePart() {
+  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.32; p.life -= 0.028; });
+  particles = particles.filter(p => p.life > 0);
+}
+function drawPart() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.col;
+    ctx.fillRect(p.x, p.y, p.sz, p.sz);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ----------------------------------------------------------------
+//  HUD
+// ----------------------------------------------------------------
+function drawHUD() {
+  const bw = 280, bh = 7, bx = (W - bw) / 2, by = 10;
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(bx, by, bw, bh);
+  const prog = Math.min(score / TARGET, 1);
+  const gd = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+  gd.addColorStop(0, '#7B2D3E'); gd.addColorStop(1, '#F0C0CE');
+  ctx.fillStyle = gd;
+  ctx.fillRect(bx, by, bw * prog, bh);
+
+  ctx.font = '500 11px Jost, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.textAlign = 'left';
+  ctx.fillText(level === 1 ? 'Genova' : 'Torino', bx, by + 20);
+  ctx.textAlign = 'right';
+  ctx.fillText('Diano ♥', bx + bw, by + 20);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FAE8EE';
+  ctx.fillText(level === 1 ? '♠ Ivan' : '♀ Magda', W / 2, by + 20);
+  ctx.textAlign = 'left';
+}
+
+// ----------------------------------------------------------------
+//  SCHERMATE
+// ----------------------------------------------------------------
+function drawStart() {
+  ctx.fillStyle = '#1A0A10';
+  ctx.fillRect(0, 0, W, H);
+  // stelle
+  ctx.fillStyle = '#FAE8EE';
+  for (let i = 0; i < 50; i++) {
+    ctx.fillRect((i * 149 + 40) % W, (i * 103 + 15) % 180, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+  }
+  // titolo
+  ctx.textAlign = 'center';
+  ctx.font = '600 26px Cormorant Garamond, serif';
+  ctx.fillStyle = '#F0C0CE';
+  ctx.fillText('Magda & Ivan', W / 2, 52);
+  ctx.font = '400 13px Jost, monospace';
+  ctx.fillStyle = 'rgba(250,232,238,0.7)';
+  ctx.fillText('IL MINIGIOCO', W / 2, 70);
+
+  // personaggi
+  if (MAGDA_CORRE.complete && MAGDA_CORRE.naturalWidth > 0)
+    ctx.drawImage(MAGDA_CORRE, W / 2 - 96, H / 2 - 52, 62, 93);
+  else spr(MAGDA[0], W / 2 - 96, H / 2 - 18, 4);
+  if (IVAN_FRONT.complete && IVAN_FRONT.naturalWidth > 0)
+    ctx.drawImage(IVAN_FRONT, W / 2 + 28, H / 2 - 58, 114, 114);
+  else drawIvan(W / 2 + 28, H / 2 - 58, 114);
+
+  // descrizione
+  ctx.font = '300 12px Jost, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText('2 livelli · Ivan da Genova · Magda da Torino · entrambi verso Diano ♥', W / 2, H - 50);
+  ctx.font = '500 13px Jost, monospace';
+  ctx.fillStyle = '#F0C0CE';
+  ctx.fillText('SPAZIO  /  ↑  /  TAP  per saltare  (doppio salto ok!)', W / 2, H - 30);
+  ctx.font = '300 11px Jost';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('[ premi spazio o clicca per iniziare ]', W / 2, H - 12);
+  ctx.textAlign = 'left';
+}
+
+let howtoPage = 0; // 0=EVITA, 1=RACCOGLI, 2=OBIETTIVO
+
+function howtoBackground() {
+  ctx.fillStyle = '#1A0A10';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#FAE8EE';
+  for (let i = 0; i < 50; i++) {
+    ctx.fillRect((i * 149 + 40) % W, (i * 103 + 15) % 180, i % 3 === 0 ? 2 : 1, i % 3 === 0 ? 2 : 1);
+  }
+}
+
+function howtoDots() {
+  // pallini indicatori pagina
+  ctx.textAlign = 'center';
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i === howtoPage ? '#F0C0CE' : 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.arc(W / 2 - 14 + i * 14, H - 14, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawHowTo() {
+  howtoBackground();
+  ctx.textAlign = 'center';
+  const cx = W / 2;
+
+  if (howtoPage === 0) {
+    // --- EVITA ---
+    ctx.font = '700 18px Jost, monospace';
+    ctx.fillStyle = 'rgba(255,100,100,0.95)';
+    ctx.fillText('✕  EVITA', cx, 38);
+
+    ctx.font = '300 14px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText('salta con spazio o tap per evitare gli ostacoli', cx, 60);
+
+    // 4 slot equidistanti: 150, 320, 510, 660
+    const bot = 172, lY = bot + 22;
+    if (imgReady('vespa'))    ctx.drawImage(IMG.vespa,    150 - 57, bot - 59,  114, 59);
+    if (imgReady('fiat500'))  ctx.drawImage(IMG.fiat500,  320 - 57, bot - 76,  114, 112);
+    if (imgReady('gabbiano')) ctx.drawImage(IMG.gabbiano, 510 - 34, bot - 50,  68, 52);
+    if (imgReady('piccione')) ctx.drawImage(IMG.piccione, 660 - 34, bot - 50,  68, 52);
+    ctx.font = '400 14px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('vespe',    150, lY);
+    ctx.fillText('macchine', 320, lY);
+    ctx.fillText('gabbiani', 510, lY);
+    ctx.fillText('piccioni', 660, lY);
+
+    ctx.font = '600 13px Jost, monospace';
+    ctx.fillStyle = '#F0C0CE';
+    ctx.fillText('[ avanti → ]', cx, H - 26);
+
+  } else if (howtoPage === 1) {
+    // --- RACCOGLI ---
+    ctx.font = '700 18px Jost, monospace';
+    ctx.fillStyle = 'rgba(100,220,140,0.95)';
+    ctx.fillText('★  RACCOGLI', cx, 38);
+
+    ctx.font = '300 14px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText('raccoglili per attivare uno scudo protettivo', cx, 60);
+
+    // 3 oggetti a sinistra, freccia →, scudo a destra
+    const bBot = 158, bLY = bBot + 20;
+    const sz = 56, col = [130, 255, 380];
+    if (imgReady('pesto'))       ctx.drawImage(IMG.pesto,       col[0] - sz/2, bBot - sz, sz, sz);
+    if (imgReady('gianduiotto')) ctx.drawImage(IMG.gianduiotto, col[1] - sz/2, bBot - 40, sz, 40);
+    if (focacciaReady())         ctx.drawImage(focacciaImg,     col[2] - sz/2, bBot - 47, sz, 47);
+
+    ctx.font = '400 14px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('pesto',       col[0], bLY);
+    ctx.fillText('gianduiotto', col[1], bLY);
+    ctx.fillText('focaccia',    col[2], bLY);
+
+    // freccia
+    ctx.font = '700 28px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText('→', 490, bBot - 10);
+
+    // scudo + didascalia a destra
+    if (imgReady('scudo')) {
+      ctx.save(); ctx.globalAlpha = 0.9;
+      const sw = 90, sh = 80;
+      ctx.drawImage(IMG.scudo, 620 - sw/2, bBot - sh, sw, sh);
+      ctx.restore();
+    }
+    ctx.font = '500 14px Jost';
+    ctx.fillStyle = 'rgba(100,220,140,0.95)';
+    ctx.fillText('scudo protettivo', 620, bLY);
+    ctx.font = '300 13px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText('qualche secondo di invincibilità', 620, bLY + 18);
+
+    ctx.font = '600 13px Jost, monospace';
+    ctx.fillStyle = '#F0C0CE';
+    ctx.fillText('[ avanti → ]', cx, H - 26);
+
+  } else {
+    // --- OBIETTIVO ---
+    ctx.font = '700 18px Jost, monospace';
+    ctx.fillStyle = 'rgba(240,192,206,0.95)';
+    ctx.fillText('♥  OBIETTIVO', cx, 38);
+
+    ctx.font = '300 14px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText('2 livelli: Ivan parte da Genova, Magda da Torino', cx, 60);
+
+    if (DIANO.complete && DIANO.naturalWidth) {
+      const dh = 130, dw = Math.round(491 / 331 * dh);
+      ctx.drawImage(DIANO, cx - dw / 2, 70, dw, dh);
+    }
+    ctx.font = '500 16px Jost';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText('Raggiungi Diano Marina!', cx, 218);
+
+  }
+
+  howtoDots();
+  ctx.textAlign = 'left';
+}
+
+function drawDead() {
+  ctx.fillStyle = 'rgba(0,0,0,0.58)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = '600 24px Cormorant Garamond, serif';
+  ctx.fillStyle = '#F0C0CE';
+  ctx.fillText('Oops!', W / 2, H / 2 - 28);
+  ctx.font = '300 13px Jost';
+  ctx.fillStyle = '#FAE8EE';
+  let msg;
+  if (level === 1) {
+    const traffic = ['vespa', 'fiat500'];
+    msg = (deathCause && traffic.includes(deathCause))
+      ? 'Oh no, Ivan è rimasto bloccato nel traffico!'
+      : 'Ivan si è distratto... riprova!';
+  } else {
+    msg = 'Magda ha inciampato... riprova!';
+  }
+  ctx.fillText(msg, W / 2, H / 2 - 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('[ spazio / tap per riprovare ]', W / 2, H / 2 + 26);
+  ctx.textAlign = 'left';
+}
+
+function drawClear() {
+  ctx.fillStyle = 'rgba(10,4,8,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.font = '600 22px Cormorant Garamond, serif';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText('Livello 1 completato! ✓', W / 2, H / 2 - 38);
+  ctx.font = '300 14px Jost';
+  ctx.fillStyle = '#FAE8EE';
+  ctx.fillText('Ivan è arrivato a Diano Marina!', W / 2, H / 2 - 8);
+  ctx.fillText('Ora tocca a Magda partire da Torino...', W / 2, H / 2 + 18);
+  ctx.font = '300 12px Jost';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('[ spazio / tap per il livello 2 ]', W / 2, H / 2 + 50);
+  ctx.textAlign = 'left';
+}
+
+function drawWin() {
+  // sfondo serale riviera
+  const gd = ctx.createLinearGradient(0, 0, 0, H);
+  gd.addColorStop(0, '#1A0A10'); gd.addColorStop(1, '#3A1828');
+  ctx.fillStyle = gd; ctx.fillRect(0, 0, W, H);
+
+  // stelle / coriandoli
+  for (let i = 0; i < 55; i++) {
+    const cx = (i * 137 + tick * 1.5) % W;
+    const cy = (i * 103 + tick)        % (H * 0.7);
+    ctx.fillStyle = ['#FFD700','#F0C0CE','#7B2D3E','#FAE8EE','#66BB6A'][i % 5];
+    ctx.fillRect(cx, cy, 4, 4);
+  }
+
+  // suolo
+  ctx.fillStyle = '#D4C07A'; ctx.fillRect(0, GROUND, W, H - GROUND);
+  ctx.fillStyle = '#A09050'; ctx.fillRect(0, GROUND, W, 3);
+
+  // testo in alto
+  ctx.textAlign = 'center';
+  ctx.font = '600 26px Cormorant Garamond, serif';
+  ctx.fillStyle = '#FFD700';
+  ctx.fillText('Congratulazioni! ♥', W / 2, 36);
+  ctx.font = '300 14px Cormorant Garamond, serif';
+  ctx.fillStyle = '#F0C0CE';
+  ctx.fillText('Magda & Ivan si sposano!', W / 2, 58);
+  ctx.font = '300 11px Jost';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText('25 Settembre 2026  ·  La Locanda del Cavaliere  ·  Diano Marina', W / 2, 76);
+
+  // personaggi — piccoli, ben centrati nella parte bassa
+  if (celebrazioneImg.complete && celebrazioneImg.naturalWidth > 0) {
+    const ch = 130, cw = Math.round(celebrazioneImg.naturalWidth / celebrazioneImg.naturalHeight * ch);
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(celebrazioneImg, W / 2 - cw / 2, GROUND - ch, cw, ch);
+    ctx.restore();
+  } else {
+    spr(IVAN_F,  W / 2 - 90, GROUND - 36, 4);
+    spr(MAGDA_F, W / 2 + 20, GROUND - 36, 4);
+  }
+
+  ctx.font = '18px sans-serif';
+  ctx.fillText('♥  ♥  ♥', W / 2, H - 6);
+  ctx.textAlign = 'left';
+}
+
+// ----------------------------------------------------------------
+//  COUNTDOWN
+// ----------------------------------------------------------------
+// 60 tick = ~1s a 60fps. Fasi: 0-59=3, 60-119=2, 120-179=1, 180-209=VIA, 210+=PLAY
+const CD_STEP = 60, CD_GO = 30;
+function updateCountdown() {
+  if (state !== ST.COUNTDOWN) return;
+  countdownTick++;
+  if (countdownTick >= CD_STEP * 3 + CD_GO) state = ST.PLAY;
+}
+
+function drawCountdown() {
+  drawBackground();
+  if (level === 1) drawIvan(player.x, player.y);
+  else             drawMagda(player.x, player.y);
+  drawHUD();
+
+  const t = countdownTick;
+  let label, alpha;
+  if      (t < CD_STEP)           { label = '3'; alpha = 1 - (t % CD_STEP) / CD_STEP * 0.3; }
+  else if (t < CD_STEP * 2)       { label = '2'; alpha = 1 - (t % CD_STEP) / CD_STEP * 0.3; }
+  else if (t < CD_STEP * 3)       { label = '1'; alpha = 1 - (t % CD_STEP) / CD_STEP * 0.3; }
+  else                             { label = 'VIA!'; alpha = 1 - (t - CD_STEP * 3) / CD_GO; }
+
+  const size = label === 'VIA!' ? 78 : 104;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.textAlign = 'center';
+  ctx.font = `700 ${size}px Cormorant Garamond, serif`;
+  ctx.fillStyle = label === 'VIA!' ? '#A0F0B0' : '#F0C0CE';
+  // ombra
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 12;
+  ctx.fillText(label, W / 2, H / 2 + size * 0.35);
+  ctx.restore();
+}
+
+// ----------------------------------------------------------------
+//  AGGIORNAMENTO
+// ----------------------------------------------------------------
+function update() {
+  updateCountdown();
+  if (state !== ST.PLAY) return;
+  tick++;
+
+  // gravità & salto
+  player.vy += 0.65;
+  player.y  += player.vy;
+  const pFloor = level === 1 ? 71 : 70;
+  if (player.y >= GROUND - pFloor) {
+    player.y = GROUND - pFloor;
+    player.vy = 0;
+    player.jumps = 0;
+  }
+
+  // animazione corsa
+  animTick++;
+  if (animTick >= 9) { animFrame = 1 - animFrame; animTick = 0; }
+  player.frame = player.jumps > 0 ? 0 : animFrame;
+
+  // velocità crescente
+  score++;
+  speed = Math.min(10, (level === 1 ? 4.2 : 4.6) + score / 180);
+
+  updateObs();
+  updateCollect();
+  updateAereo();
+  if (shieldTick > 0) shieldTick--;
+  updateFinish();
+  updatePart();
+
+  // spawn traguardo quando si avvicina la fine
+  if (score >= TARGET - 160 && !finishLine) spawnFinish();
+
+  // collisione ostacoli
+  if (hit()) {
+    burst(player.x + 14, player.y + 18);
+    state = ST.DEAD;
+  }
+
+  // finish line arriva al centro: congela sfondo, player corre verso di essa
+  if (finishLine && finishLine.x <= W / 2 && !finishRunning) {
+    finishRunning = true;
+    score = TARGET;
+    obstacles = [];
+  }
+
+  // player corre verso il traguardo
+  if (finishRunning) {
+    const targetX = W / 2 - 50;
+    player.x += speed * 0.9;
+    player.y = GROUND - (level === 1 ? 71 : 64); // assicura a terra
+    if (player.x >= targetX) {
+      player.x = targetX;
+      state = level === 1 ? ST.CLEAR : ST.WIN;
+      finishRunning = false;
+      if (state === ST.WIN) { burst(W / 2, H / 2); burst(W / 2 - 60, H / 2); }
+    }
+  }
+}
+
+// ----------------------------------------------------------------
+//  RENDER
+// ----------------------------------------------------------------
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  if (state === ST.START)     { drawStart();     return; }
+  if (state === ST.HOWTO)     { drawHowTo();     return; }
+  if (state === ST.COUNTDOWN) { drawCountdown(); return; }
+  if (state === ST.WIN)       { drawWin();       return; }
+
+  drawBackground();
+  drawAereo();
+  drawFinish();
+  drawCollect();
+  drawObs();
+  if (level === 1) drawIvan(player.x, player.y);
+  else drawMagda(player.x, player.y);
+  drawShield();
+  drawPart();
+  drawHUD();
+
+  if (state === ST.DEAD)  drawDead();
+  if (state === ST.CLEAR) drawClear();
+}
+
+// ----------------------------------------------------------------
+//  INPUT
+// ----------------------------------------------------------------
+function action() {
+  if (state === ST.START) { howtoPage = 0; state = ST.HOWTO; return; }
+  if (state === ST.HOWTO) { if (howtoPage < 2) { howtoPage++; } else { resetLevel(1); } return; }
+  if (state === ST.DEAD)  { resetLevel(level); return; }
+  if (state === ST.CLEAR) { resetLevel(2); return; }
+  if (state === ST.WIN)   { state = ST.START; return; }
+  if (state === ST.PLAY && player.jumps < 2) {
+    player.vy   = -13.5;
+    player.jumps++;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); action(); }
+});
+canvas.addEventListener('touchstart', e => { e.preventDefault(); action(); }, { passive: false });
+canvas.addEventListener('click', action);
+
+// ----------------------------------------------------------------
+//  LOOP
+// ----------------------------------------------------------------
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
