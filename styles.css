@@ -1435,12 +1435,25 @@ section[id] { scroll-margin-top: 72px; }
   }
 
   .attire__trio {
-    grid-template-columns: 1fr auto 1fr;
-    gap: 10px;
-    justify-content: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+  }
+  .attire__trio-colors {
+    order: -1;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  .attire__color-label {
+    width: 100%;
   }
   .attire__trio-panel {
-    width: 100%;
+    width: calc(50% - 6px);
     min-width: 0;
   }
   .attire__color-swatch {
@@ -1448,7 +1461,8 @@ section[id] { scroll-margin-top: 72px; }
     height: 28px;
   }
   .attire__trio-imgs {
-    height: 220px;
+    height: auto;
+    aspect-ratio: 2 / 3;
   }
 
   .polaroid-wall {
